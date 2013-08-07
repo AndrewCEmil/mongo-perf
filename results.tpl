@@ -83,6 +83,42 @@
                 <input class="gofloat" type="submit" value="Go"/>
             </fieldset>
         </form>
+        % platforms = ' '.join(request.GET.getall('platforms'))
+        % versions = ' '.join(request.GET.getall('versions'))
+        % labels = ' '.join(request.GET.getall('labels'))
+        <form name="custom_form" id="custom_form" action="/results" method="get">
+          <fieldset class="fields">
+              <div class="floatleft">
+              <h2>
+              From: <input type="text" size="6" name="start" class="datepicker" />
+              </h2>
+              <h2>
+              To:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="text" size="6" name="end" class="datepicker" />
+              </h2>
+              <h2>Labels</h2>
+              % labels = info['labels']
+              % platforms = info['platforms']
+              % versions = info['versions']
+              %for label in labels:
+              <input type="checkbox" name="labels" value={{label}}>{{label}}<br>
+              %end
+              <h2>Limit</h2>
+              <input type="text" name="limit" size="2" value="5"/><br><br>
+              </div>
+              <div class="floatcenter">
+              <h2>Platforms</h2>
+              %for platform in platforms:
+              <input type="checkbox" name="platforms" value={{platform}}>{{platform}}<br>
+              %end
+              <h2>MongoDB Version</h2>
+              %for version in versions:
+              <input type="checkbox" name="versions" value={{version}}>{{version}}<br>
+              %end
+              </div>
+              <input type="hidden" name="multidb" value="0"/><br><br>
+              <button class="gofloat" action='submit'>Submit</button>
+            </fieldset>
+        </form>
         %import urllib
         %for k, (outer_result, flot_data) in enumerate(zip(results, flot_results)):
         <h2 id="{{outer_result['name']}}"><a href="https://github.com/search?q={{outer_result['name'][outer_result['name'].rfind(":") + 1:]}}+path%3Abenchmark.cpp+repo%3Amongodb%2Fmongo-perf&amp;type=Code&amp;ref=searchresults" target="_blank">{{outer_result['name']}}</a></h2>
