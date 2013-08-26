@@ -83,6 +83,17 @@
                 <input class="gofloat" type="submit" value="Go"/>
             </fieldset>
         </form>
+        <button onclick="hideTables()">Hide Tables</button>
+        <button onclick="showTables()">Show Tables</button>
+        <script>
+            function hideTables() {
+                $("table.display").css("display","none")
+            }
+
+            function showTables() {
+                $("table.display").css("display","block")
+            }
+        </script>
         %import urllib
         %for k, (outer_result, flot_data) in enumerate(zip(results, flot_results)):
         <h2 id="{{outer_result['name']}}"><a href="https://github.com/search?q={{outer_result['name'][outer_result['name'].rfind(":") + 1:]}}+path%3Abenchmark.cpp+repo%3Amongodb%2Fmongo-perf&amp;type=Code&amp;ref=searchresults" target="_blank">{{outer_result['name']}}</a></h2>
