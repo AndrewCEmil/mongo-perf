@@ -35,6 +35,7 @@
         % limit = request.GET.get('limit', '10')
         % start = request.GET.get('start', '')
         % end = request.GET.get('end', '')
+        <!--
         <form action="/results">
             <fieldset id="selectors" class="fields">
                 <div>
@@ -83,6 +84,7 @@
                 <input class="gofloat" type="submit" value="Go"/>
             </fieldset>
         </form>
+        -->
         % platforms = ' '.join(request.GET.getall('platforms'))
         % versions = ' '.join(request.GET.getall('versions'))
         % labels = ' '.join(request.GET.getall('labels'))
@@ -114,6 +116,13 @@
               %for version in versions:
               <input type="checkbox" name="versions" value={{version}}>{{version}}<br>
               %end
+              <h2>
+              Metric: <select id="metric" name="metric">
+                  <option {{'selected' if metric=="ops_per_sec" else ""}}>ops_per_sec</option>
+                  <option {{'selected' if metric=="time" else ""}}>time</option>
+                  <option {{'selected' if metric=="speedup" else ""}}>speedup</option>
+              </select>
+              </h2>
               </div>
               <input type="hidden" name="multidb" value="0"/><br><br>
               <button class="gofloat" action='submit'>Submit</button>
