@@ -93,10 +93,26 @@
             function showTables() {
                 $("table.display").css("display","block")
             }
+
+            function hideThisTable(buttonscope) {
+                console.log(buttonscope)
+                targetEle = $(buttonscope).parent().find("table")
+                //targetEle = $(buttonscope).next()
+                targetEle.css('display', 'none');
+            }
+
+            function showThisTable(buttonscope) {
+                console.log(buttonscope)
+                targetEle = $(buttonscope).parent().find("table")
+                targetEle.css('display', 'block');
+            }
         </script>
         %import urllib
         %for k, (outer_result, flot_data) in enumerate(zip(results, flot_results)):
         <h2 id="{{outer_result['name']}}"><a href="https://github.com/search?q={{outer_result['name'][outer_result['name'].rfind(":") + 1:]}}+path%3Abenchmark.cpp+repo%3Amongodb%2Fmongo-perf&amp;type=Code&amp;ref=searchresults" target="_blank">{{outer_result['name']}}</a></h2>
+        <div class="displaytable">
+        <button onclick="hideThisTable(this)">Hide Table</button>
+        <button onclick="showThisTable(this)">Show Table</button>
         <table class="display">
             <thead>
                 <tr>
@@ -133,6 +149,7 @@
                 %end
             </tbody>
         </table>
+        </div>
         <br/>
         <div id="legendContainer_{{k}}" style="background-color:#fff;padding:2px;margin-bottom:8px;border-radius: 3px 3px 3px 3px;border:1px solid #E6E6E6;display:inline-block;margin:0 auto;width:600px;float:right"></div>
         <div id="flot_{{k}}" style="width:600px;height:300px;"></div>
