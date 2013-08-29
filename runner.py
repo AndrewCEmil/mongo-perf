@@ -129,6 +129,7 @@ class Master(object):
                  ('run_date', pymongo.ASCENDING)],
                 unique=True)
 
+            #NOTE: this is essentially an insert since the run_date will chage
             host.update({'build_info.version': self.build_info['version'],
                          'label': self.opts.label,
                          'run_date': self.run_date

@@ -209,7 +209,7 @@
                         series: { lines: { show: true }, points: { show: true } },
                         legend: { show: true, position: "nw", backgroundOpacity: 0,
                         container: $("#legendContainer_{{k}}"), noColumns: 2 },
-                        xaxis: {ticks : {{threads}} },
+                        xaxis: {ticks : {{datelist}}, mode: "time" },
                         yaxis: {min : 0},
                         tooltip: true
                     }

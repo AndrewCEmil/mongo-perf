@@ -17,6 +17,8 @@
 import sys
 import json
 import pymongo
+import pprint
+import time 
 from bottle import *
 import logging as logr
 import logging.handlers
@@ -197,8 +199,44 @@ def results_page():
         results = raw_data(versions, labels, multidb, dates,
                            platforms, start, end, limit)
 
+    pprint.pprint(results)
+    #format of results:
     threads = set()
     flot_results = []
+    #from this section we need to generate the flot results and the threads set
+    new_flot_results = []
+    dates = set()
+    #keys are thread nums, vals are the data list
+    for outer_result in results:
+        flot_dict = {}
+        result_section = []
+        for result in outer_result['results']:
+            for key in result.keys():
+                if key.isdigit():
+                    #this is a thread num
+                    #ensure it is in dict
+                    if key not in flot_dict.keys():
+                        flot_dict[key] = []
+
+                    date = time.mktime(datetime.strptime(result['date'], '%Y-%m-%d').timetuple()) * 1000
+                    dates.add(date)
+                    datapoint = [date, result[key]['ops_per_sec']]
+                    flot_dict[key].append(datapoint)
+        for key in flot_dict.keys():
+            tmpele = {'data': flot_dict[key], 'label': key}
+            result_section.append(tmpele)
+        new_flot_results.append(json.dumps(result_section))
+            
+    """
+    pprint.pprint(flot_dict)
+    print "results length: " + str(len(results))
+    dateset = set()
+    #now take flot_dict, convert it into form that we need
+    for key in flot_dict.keys():
+        tmpele = {'data': flot_dict[key], 'label': key}
+        new_flot_results.append(tmpele)
+    """
+
     for outer_result in results:
         out = []
         for i, result in enumerate(outer_result['results']):
@@ -215,9 +253,8 @@ def results_page():
     info = gen_query_info()
 
     return template('results.tpl', results=results, flot_results=flot_results,
-                     request=request, threads=sorted(threads),
+                     request=request, threads=sorted(threads), datelist=sorted(dates),
                      info=info)
-
 
 def merge(results):
     """This takes separate results that have been pulled
@@ -289,4 +326,4 @@ def main_page():
 
 if __name__ == '__main__':
     do_reload = '--reload' in sys.argv
-    run(host='0.0.0.0', server=AutoServer, debug=do_reload)
+    run(host='0.0.0.0', server=AutoServer)
