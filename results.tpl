@@ -35,56 +35,6 @@
         % limit = request.GET.get('limit', '10')
         % start = request.GET.get('start', '')
         % end = request.GET.get('end', '')
-        <!--
-        <form action="/results">
-            <fieldset id="selectors" class="fields">
-                <div>
-                    <div>
-                        <label for="metric">Metric</label>
-                        <select id="metric" name="metric">
-                        <option {{'selected' if metric=="ops_per_sec" else ""}}>ops_per_sec</option>
-                        <option {{'selected' if metric=="time" else ""}}>time</option>
-                        <option {{'selected' if metric=="speedup" else ""}}>speedup</option>
-                        </select>
-                    </div>
-                    <div class="floatleft">
-                        <label for="labels">Labels (space-separated or /regex/)</label>
-                        <input type="text" name="labels" value="{{labels}}"/>
-                    </div>
-                    <div class="floatright">
-                        <label for="platforms">Platforms (space-separated or /regex/)</label>
-                        <input type="text" name="platforms" value="{{platforms}}"/>
-                    </div>
-                    <div class="floatleft">
-                        <label for="multidb">Single/Muiti database (0 or 1)</label>
-                        <input type="text" name="multidb" value="{{multidb}}"/>
-                    </div>
-                    <div class="floatright">
-                        <label for="versions">Versions (space-separated or /regex/)</label>
-                        <input type="text" name="versions" value="{{versions}}"/>
-                    </div>
-                    <div class="floatleft">
-                        <label for="start">Start Date (YYYY-MM-DD)</label>
-                        <input type="text" name="start" value="{{start}}"/>
-                    </div>
-                    <div class="floatright">
-                        <label for="end">End Date (YYYY-MM-DD)</label>
-                        <input type="text" name="end" value="{{end}}"/>
-                    </div>
-                    <div class="floatleft">
-                        <label for="dates">Specific dates (space-separated or /regex/)</label>
-                        <input type="text" name="dates" value="{{dates}}"/>
-                    </div>
-                    <div class="floatright">
-                        <label for="limit">Limit</label>
-                        <input type="text" name="limit" value="{{limit}}"/>
-                    </div>
-                </div>
-                <input type="hidden" name="home" value="{{home}}"/>
-                <input class="gofloat" type="submit" value="Go"/>
-            </fieldset>
-        </form>
-        -->
         % platforms = ' '.join(request.GET.getall('platforms'))
         % versions = ' '.join(request.GET.getall('versions'))
         % labels = ' '.join(request.GET.getall('labels'))
