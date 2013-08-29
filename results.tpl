@@ -47,7 +47,7 @@
                         </select>
                     </div>
                     <div class="floatleft">
-                        <label for="labels">Labels (space-separated or /regex/)</label>
+                        <label for="labels">Build Variants (space-separated or /regex/)</label>
                         <input type="text" name="labels" value="{{labels}}"/>
                     </div>
                     <div class="floatright">
@@ -90,7 +90,7 @@
             <thead>
                 <tr>
                     <th>Num</th>
-                    <th>Label</th>
+                    <th>Build Variant</th>
                     <th>Platform</th>
                     <th>Version</th>
                     <th>Date</th>

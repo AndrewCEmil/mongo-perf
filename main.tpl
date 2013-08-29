@@ -14,7 +14,7 @@
     <div id="tabs">
       <ul>
         <li><a href="#dash">Dashboard</a></li>
-        <li><a href="#labels">Labels</a></li>
+        <li><a href="#labels">Build Variants</a></li>
         <li><a href="#platforms">Platforms</a></li>
         <li><a href="#versions">Versions</a></li>
         <li><a href="#custom">Custom</a></li>
@@ -61,7 +61,7 @@
           From: <input type="text" size="6" name="start" class="datepicker" />
           <h2>
           To:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="text" size="6" name="end" class="datepicker" />
-          <h2>Labels</h2>
+          <h2>Build Variants</h2>
           %for label in labels:
           <input type="checkbox" name="labels" value={{label}}>{{label}}<br>
           %end
