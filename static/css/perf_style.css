@@ -7,6 +7,12 @@ body {
   float: right;
 }
 
+.floatcenter {
+  float: center;
+  margin-left: 550px;
+  margin-top: 50px;
+}
+
 .floatleft {
   clear: both;
   float: left;
