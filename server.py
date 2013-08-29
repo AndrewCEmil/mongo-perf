@@ -241,7 +241,7 @@ def results_page():
     #hacked in, need to be removed/cleaned up in the future -sorry!
     info = gen_query_info()
 
-    return template('results.tpl', results=results, flot_results=flot_results,
+    return template('results.tpl', results=results, flot_results=new_flot_results,
                      request=request, threads=sorted(threads), datelist=sorted(dates),
                      info=info)
 
