@@ -199,7 +199,6 @@ def results_page():
         results = raw_data(versions, labels, multidb, dates,
                            platforms, start, end, limit)
 
-    pprint.pprint(results)
     #format of results:
     threads = set()
     flot_results = []
@@ -227,16 +226,6 @@ def results_page():
             result_section.append(tmpele)
         new_flot_results.append(json.dumps(result_section))
             
-    """
-    pprint.pprint(flot_dict)
-    print "results length: " + str(len(results))
-    dateset = set()
-    #now take flot_dict, convert it into form that we need
-    for key in flot_dict.keys():
-        tmpele = {'data': flot_dict[key], 'label': key}
-        new_flot_results.append(tmpele)
-    """
-
     for outer_result in results:
         out = []
         for i, result in enumerate(outer_result['results']):
