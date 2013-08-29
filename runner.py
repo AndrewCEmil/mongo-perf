@@ -55,7 +55,6 @@ class Master(object):
         self.configureLogger(LOG_FILE)
         self.run_date = self.now.strftime("%Y-%m-%d")
 
-
     def cleanup(self):
         """Cleans up spawned children
         """
@@ -110,6 +109,7 @@ class Master(object):
             info = dict({'platform': self.host_info,
                          'build_info': self.build_info})
             info['run_date'] = self.run_date
+            info['run_ts'] = self.now
             info['label'] = self.opts.label
 
             raw.ensure_index('label')
@@ -129,9 +129,10 @@ class Master(object):
                  ('run_date', pymongo.ASCENDING)],
                 unique=True)
 
+            #note this is almost always an insert because of the date
+            #TODO how to unique id this?
             host.update({'build_info.version': self.build_info['version'],
                          'label': self.opts.label,
-                         'run_date': self.run_date
                          }, info, upsert=True)
 
         except pymongo.errors.ConnectionFailure, e:
@@ -181,6 +182,7 @@ class Master(object):
         obj = defaultdict(dict)
         obj['label'] = self.opts.label
         obj['run_date'] = self.run_date
+        obj['run_ts'] = self.now
         if single_db_benchmarks:
             obj['singledb'] = single_db_benchmarks
         if multi_db_benchmarks:
@@ -376,7 +378,6 @@ class Runner(Master):
             sys.exit(retval)
 
         return single_db_benchmark_results, multi_db_benchmark_results
-
 
 def main():
     opts, versions = parse_options()
