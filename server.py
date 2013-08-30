@@ -135,7 +135,8 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
                            platform=entry['platform'],
                            version=entry['version'],
                            date=entry['run_date'],
-                           label=entry['label'])
+                           label=entry['label'],
+                           timestamp=entry['run_ts'])
                 for (n, res) in result['results'].iteritems():
                     row[n] = res
                 aggregate[result['name']].append(row)
@@ -224,7 +225,8 @@ def merge(results):
                    platform=result['results'][0]['platform'],
                    version=result['results'][0]['version'],
                    commit=result['results'][0]['commit'],
-                   date=result['results'][0]['date'])
+                   date=result['results'][0]['date'],
+                   timestamp=result['results'][0]['run_ts'])
         for (n, res) in result['results'][0].iteritems():
             row[n] = res
         aggregate[result['name']].append(row)

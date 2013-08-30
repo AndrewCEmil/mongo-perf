@@ -120,20 +120,21 @@ class Master(object):
                 [('version', pymongo.ASCENDING),
                  ('label', pymongo.ASCENDING),
                  ('platform', pymongo.ASCENDING),
-                 ('run_date', pymongo.ASCENDING)],
-                unique=True)
+                 ('run_date', pymongo.ASCENDING),
+                 ('run_ts', pymongo.ASCENDING)])
 
             host.ensure_index(
                 [('build_info.version', pymongo.ASCENDING),
                  ('label', pymongo.ASCENDING),
-                 ('run_date', pymongo.ASCENDING)],
-                unique=True)
+                 ('run_date', pymongo.ASCENDING),
+                 ('run_ts', pymongo.ASCENDING)])
 
             #note this is almost always an insert because of the date
             #TODO how to unique id this?
-            host.update({'build_info.version': self.build_info['version'],
-                         'label': self.opts.label,
-                         }, info, upsert=True)
+            host.insert(info)
+            #host.update({'build_info.version': self.build_info['version'],
+            #             'label': self.opts.label,
+            #             }, info, upsert=True)
 
         except pymongo.errors.ConnectionFailure, e:
             self.logger.error("Could not connect to MongoDB database - {0}".
