@@ -93,7 +93,6 @@
                     <th>Label</th>
                     <th>Platform</th>
                     <th>Version</th>
-                    <th>Date</th>
                     <th>Timestamp</th>
                     <th>Commit</th>
                     %for thread in threads:
@@ -103,7 +102,7 @@
             </thead>
             <tbody>
                 %for i, result in enumerate(outer_result['results']):
-                %host_keys = ['date', 'label', 'version']
+                %host_keys = ['label', 'version']
                 %host = {}
                 %for key in host_keys:
                 %host[key] = result[key]
@@ -114,7 +113,6 @@
                     <td><a href="host?{{host}}">{{result['label']}}</a></td>
                     <td>{{result['platform']}}</td>
                     <td>{{result['version']}}</td>
-                    <td>{{result['date']}}</td>
                     <td>{{result['timestamp']}}</td>
                     <td><a href="https://github.com/mongodb/mongo/commit/{{result['commit']}}" target="_blank">{{result['commit'][:7]}}</a></td>
                     %for thread in threads:

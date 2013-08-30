@@ -53,7 +53,6 @@ class Master(object):
         self.now = datetime.datetime.utcnow()
         self.logger = logging.getLogger(LOG_FILE)
         self.configureLogger(LOG_FILE)
-        self.run_date = self.now.strftime("%Y-%m-%d")
 
     def cleanup(self):
         """Cleans up spawned children
@@ -108,30 +107,27 @@ class Master(object):
             host = self.connection.bench_results.host
             info = dict({'platform': self.host_info,
                          'build_info': self.build_info})
-            info['run_date'] = self.run_date
             info['run_ts'] = self.now
             info['label'] = self.opts.label
 
             raw.ensure_index('label')
-            raw.ensure_index('run_date')
             raw.ensure_index('version')
             raw.ensure_index('platform')
             raw.ensure_index(
                 [('version', pymongo.ASCENDING),
                  ('label', pymongo.ASCENDING),
                  ('platform', pymongo.ASCENDING),
-                 ('run_date', pymongo.ASCENDING),
                  ('run_ts', pymongo.ASCENDING)])
 
             host.ensure_index(
                 [('build_info.version', pymongo.ASCENDING),
                  ('label', pymongo.ASCENDING),
-                 ('run_date', pymongo.ASCENDING),
                  ('run_ts', pymongo.ASCENDING)])
 
+            #this should turn back into an update, just need to $push the run_ts onto a list
+            host.insert(info)
             #note this is almost always an insert because of the date
             #TODO how to unique id this?
-            host.insert(info)
             #host.update({'build_info.version': self.build_info['version'],
             #             'label': self.opts.label,
             #             }, info, upsert=True)
@@ -182,7 +178,6 @@ class Master(object):
 
         obj = defaultdict(dict)
         obj['label'] = self.opts.label
-        obj['run_date'] = self.run_date
         obj['run_ts'] = self.now
         if single_db_benchmarks:
             obj['singledb'] = single_db_benchmarks
@@ -205,7 +200,6 @@ class Master(object):
             collection.update({'label': obj['label'],
                                'version': obj['version'],
                                'platform': obj['platform'],
-                               'run_date': obj['run_date']
                                }, {"$set" : obj}, upsert=True)
 
         except pymongo.errors.OperationFailure, e:
