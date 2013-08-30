@@ -107,30 +107,23 @@ class Master(object):
             host = self.connection.bench_results.host
             info = dict({'platform': self.host_info,
                          'build_info': self.build_info})
-            info['run_ts'] = self.now
+            info['run_ts'] = [self.now]
             info['label'] = self.opts.label
+            info['hostid'] = self.opts.hostid
 
             raw.ensure_index('label')
             raw.ensure_index('version')
             raw.ensure_index('platform')
-            raw.ensure_index(
-                [('version', pymongo.ASCENDING),
-                 ('label', pymongo.ASCENDING),
-                 ('platform', pymongo.ASCENDING),
-                 ('run_ts', pymongo.ASCENDING)])
+            raw.ensure_index('hostid')
 
-            host.ensure_index(
-                [('build_info.version', pymongo.ASCENDING),
-                 ('label', pymongo.ASCENDING),
-                 ('run_ts', pymongo.ASCENDING)])
+            host.ensure_index('hostid', unique=True)
 
-            #this should turn back into an update, just need to $push the run_ts onto a list
-            host.insert(info)
-            #note this is almost always an insert because of the date
-            #TODO how to unique id this?
-            #host.update({'build_info.version': self.build_info['version'],
-            #             'label': self.opts.label,
-            #             }, info, upsert=True)
+            #check if host exists yet
+            #TODO handle case where hostid is empty (generate id?)
+            if host.find({'hostid': self.opts.hostid}).count() == 0:
+                host.insert(info)
+            else:
+                host.update({'hostid'}, {'$push': { 'runs': info['run_ts'] } })
 
         except pymongo.errors.ConnectionFailure, e:
             self.logger.error("Could not connect to MongoDB database - {0}".
@@ -421,7 +414,10 @@ def parse_options():
                         ' - only useful in conjunction with --local',
                          action='store_true', default=False)
     optparser.add_option('-l', '--label', dest='label',
-                         help='performance testing host',
+                         help='performance testing build variant',
+                         type='string', default='')
+    optparser.add_option('-i', '--hostid', dest='hostid',
+                         help='performance testing host id',
                          type='string', default='')
     optparser.add_option('-u', '--username', dest='username',
                          help='Username to use for authentication.',
