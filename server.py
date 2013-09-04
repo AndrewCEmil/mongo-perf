@@ -205,14 +205,20 @@ def results_page():
     flot_results = []
     #from this section we need to generate the flot results and the threads set
     new_flot_results = []
+    newer_flot_results = []
+    target_keys = ['8', '12', '16']
     dates = set()
     #keys are thread nums, vals are the data list
     for outer_result in results:
         flot_dict = {}
+        newer_flot_dict = {}
+        flot_list = []
         result_section = []
         for result in outer_result['results']:
+            sum = 0
             for key in result.keys():
-                if key.isdigit():
+                if key.isdigit() and key in target_keys:
+                    sum += result[key]['ops_per_sec']
                     #this is a thread num
                     #ensure it is in dict
                     if key not in flot_dict.keys():
@@ -222,10 +228,20 @@ def results_page():
                     dates.add(date)
                     datapoint = [date, result[key]['ops_per_sec']]
                     flot_dict[key].append(datapoint)
+
+            avg = sum / len(target_keys)
+            date = time.mktime(datetime.strptime(result['date'], '%Y-%m-%d').timetuple()) * 1000
+            datapoint = [date, avg]
+            flot_list.append(datapoint)
+
         for key in flot_dict.keys():
             tmpele = {'data': flot_dict[key], 'label': key}
             result_section.append(tmpele)
+        
+        tmptwo = { 'data': flot_list, 'label': 'avg'}
+
         new_flot_results.append(json.dumps(result_section))
+        newer_flot_results.append(json.dumps([tmptwo]))
             
     """
     pprint.pprint(flot_dict)
@@ -253,8 +269,7 @@ def results_page():
     pprint.pprint(flot_results)
     print "flot_results length: " + str(len(flot_results))
     """
-    print(sorted(dates))
-    return template('results.tpl', results=results, flot_results=new_flot_results,
+    return template('results.tpl', results=results, flot_results=newer_flot_results,
                      request=request, threads=sorted(threads), datelist=sorted(dates))
      #request=request, threads=sorted(threads))
 
