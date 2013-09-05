@@ -21,6 +21,7 @@ using namespace mongo;
 
 namespace {
     const int thread_nums[] = {1,2,4,6,8,12,16};
+    const int thread_num = 12;
     const int max_threads = 16;
     // Global connections
     DBClientConnection _conn[max_threads];
@@ -158,12 +159,20 @@ namespace {
         T test;
     };
 
+    double genVariance(double runcount, double sum, double sumofsquares) {
+        double numerator = ( (runcount * sumofsquares) - (sum * sum));
+        double denominator = ( runcount * (runcount - 1));
+        double variance = numerator / denominator;
+        return variance;
+    }
+
     struct TestSuite{
             template <typename T>
             void add(){
                 tests.push_back(new Test<T>());
             }
             void run(){
+                //TODO pull static variables out here
                 for (vector<TestBase*>::iterator it=tests.begin(), end=tests.end(); it != end; ++it){
                     TestBase* test = *it;
                     boost::posix_time::ptime startTime, endTime; //reused
@@ -172,33 +181,64 @@ namespace {
 
                     BSONObjBuilder results;
 
-                    double one_micros;
                     bool resetDone = false;
-                    BOOST_FOREACH(int nthreads, thread_nums){
+                    int minRunCount = 5;
+                    int maxRunCount = 20;
+                    double maxVariance = 100;//TODO test + set
 
+                    //this section should be run multiple tmes
+                    double runcount = 0;
+                    double sum = 0;
+                    double sumofsquares = 0;
+                    bool keeprunning = true;
+                    //first run it 5 times
+                    //then keep running until either
+                        //a standard dev is < epsilon
+                        //b new standard dev is within n% of old standard dev
+                    while(keeprunning) {
+                        //TODO is this the correct reset behavior
                         if (!test->readOnly() || !resetDone) {
                             test->reset();
                             resetDone = true;
                         }
                         startTime = boost::posix_time::microsec_clock::universal_time();
-                        launch_subthreads(nthreads, test);
+                        launch_subthreads(thread_num, test);
                         endTime = boost::posix_time::microsec_clock::universal_time();
                         double micros = (endTime-startTime).total_microseconds() / 1000000.0;
+                        runcount = runcount + 1;
+                        sum = sum + micros;
+                        sumofsquares = sumofsquares + (micros * micros);
 
-                        if (nthreads == 1) 
-                            one_micros = micros;
+                        double variance = genVariance(runcount, sum, sumofsquares);
+                        //set keep running
+                        //TODO this is shit/unclear, make it better
+                        if(runcount < minRunCount) {
+                            keeprunning = true;
+                        } else if (variance > maxVariance) {
+                            keeprunning = false;   
+                        } else if (runcount >= maxRunCount) {
+                            keeprunning = false;
+                        }
+                    }
+                    //done
+                    //TODO this is calculated wrong
+                    double avg_ops = (iterations * runcount) / sum;
+                    results.append("realtest", BSON("avgOPS" << avg_ops));
+                    BSONObj out = BSON( "name" << test->name()
+                                     << "results" << results.obj());
 
+
+                    /*
                         results.append(BSONObjBuilder::numStr(nthreads),
                                        BSON( "time" << micros
                                           << "ops_per_sec" << iterations / micros
-                                          << "speedup" << one_micros / micros
                                           ));
-                    }
-
+                    //end section
                     BSONObj out =
                         BSON( "name" << test->name()
                            << "results" << results.obj()
                            );
+                    */
                     cout << out.jsonString(Strict) << endl;
                 }
             }
@@ -879,6 +919,7 @@ namespace{
             add< Insert::EmptyBatched<100> >();
             add< Insert::EmptyBatched<1000> >();
             add< Insert::EmptyCapped >();
+            /*
             add< Insert::JustID >();
             add< Insert::IntID >();
             add< Insert::IntIDUpsert >();
@@ -911,6 +952,7 @@ namespace{
             add< Commands::CountsFullCollection >();
             add< Commands::CountsIntIDRange >();
             add< Commands::FindAndModifyInserts >();
+            */
 
         }
     } theTestSuite;
