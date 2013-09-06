@@ -159,6 +159,7 @@ namespace {
         T test;
     };
 
+    /*
     double genVariance(double runcount, double sum, double sumofsquares) {
         cerr << "runcount: " << runcount << endl;
         double numerator = ( (runcount * sumofsquares) - (sum * sum));
@@ -166,25 +167,29 @@ namespace {
         double variance = numerator / denominator;
         cerr << "variance: " << variance << endl;
         return variance;
+    }*/
+
+    double getSum(vector<double> vals) {
+        double sum = 0;
+        for(int i = 0; i < vals.size(); i++) {
+            sum = sum + vals[i];
+        }
+        return sum;
     }
 
     double getMean(vector<double> vals) {
         int i;
-        double sum = 0;
-        for(i = 0; i < vals.size(); i++) {
-            sum = sum + vals[i];
-        }
+        double sum = getSum(vals);
         double result = sum / vals.size();
         return result;
     }
 
-    double genRealVariance(vector<double> secs) {
-        double mean = getMean(secs);
+    double genRealVariance(vector<double> secs, double meanSecs) {
         int i;
         double delta;
         double curSum = 0;
         for(i = 0; i < secs.size(); i++) {
-            delta = secs[i] - mean;
+            delta = secs[i] - meanSecs;
             curSum = curSum + (delta * delta);
         }
         double finalRes = curSum / (secs.size() - 1);
@@ -196,9 +201,15 @@ namespace {
             void add(){
                 tests.push_back(new Test<T>());
             }
-            //NOTE YOU NOOB, this is calculating variance wrong
+            //TODO tons of optimizations to be done here, its pretty sloppy right now
             void run(){
-                //TODO pull static variables out here
+                int minRunCount = 5;
+                int maxRunCount = 20;
+                double maxVariance = 400000;//TODO test + set
+                double maxVarianceRatio = .01;
+                double oldVariance;
+                double newVariance;
+                double mean;
                 for (vector<TestBase*>::iterator it=tests.begin(), end=tests.end(); it != end; ++it){
                     TestBase* test = *it;
                     boost::posix_time::ptime startTime, endTime; //reused
@@ -208,59 +219,54 @@ namespace {
                     BSONObjBuilder results;
 
                     bool resetDone = false;
-                    int minRunCount = 5;
-                    int maxRunCount = 20;
-                    double maxVariance = 400000;//TODO test + set
-                    vector<double> times;
-                    //this section should be run multiple tmes
-                    double runcount = 0;
-                    double sum = 0;
-                    double sumofsquares = 0;
                     bool keeprunning = true;
-                    double variance = 0;
+                    vector<double> times;
 
-                    //first run it 5 times
-                    //then keep running until either
-                        //a standard dev is < epsilon
-                        //b new standard dev is within n% of old standard dev
                     while(keeprunning) {
-                        //TODO is this the correct reset behavior
+
+                        //TODO is this the correct reset behavior, its left from old code
                         if (!test->readOnly() || !resetDone) {
                             test->reset();
                             resetDone = true;
                         }
+
                         startTime = boost::posix_time::microsec_clock::universal_time();
                         launch_subthreads(thread_num, test);
                         endTime = boost::posix_time::microsec_clock::universal_time();
+
                         double secs = (endTime-startTime).total_microseconds() / 1000000.0;
-                        runcount = runcount + 1;
-                        sum = sum + secs;
-                        sumofsquares = sumofsquares + (secs * secs);
                         times.push_back(secs);
 
-                        cerr << "runcount " << runcount << endl;
-                        cerr << "secs " << secs << endl;
-                        cerr << "sum " << sum << endl;
-                        //variance = genVariance(runcount, sum, sumofsquares);
-                        variance = genRealVariance(times);
-                        cerr << "variance " << variance << endl;
-                        //set keep running
+                        mean = getMean(times);
+                        newVariance = genRealVariance(times, mean);
+                        cerr << "variance " << newVariance << endl;
+
                         //TODO this is shit/unclear, make it better
-                        if(runcount < minRunCount) {
-                            keeprunning = true;
-                        } else if (variance < maxVariance) {
-                            keeprunning = false;   
-                        } else if (runcount >= maxRunCount) {
+                        if(times.size() < minRunCount) {
+                            keeprunning = true; //dont really need to set as True is default
+                        } else if (times.size() >= maxRunCount) {
                             keeprunning = false;
+                        } else {
+                            //NOTE should not get in here with empty/invalid variances
+                            //calculate variance limits
+                            double varRatio = abs(1 - (oldVariance / newVariance));
+                            cerr << "varRatio: " << varRatio << endl;
+                            if (varRatio <= maxVarianceRatio) {
+                                keeprunning = false;
+                            }
                         }
+                        oldVariance = newVariance;
                     }
+
                     //done
-                    double avg_ops = (iterations * runcount) / sum;
+                    double sum = getSum(times);
+                    double avg_ops = (iterations * times.size()) / sum;
+                    int size = int(times.size());
                     BSONObj out = BSON( "name" << test->name()
                                      << "avgOPS" << avg_ops
-                                     << "rounds" << runcount
+                                     << "rounds" << static_cast<int>(times.size())
                                      << "totalTimeSecs" << sum
-                                     << "variance" << variance);
+                                     << "variance" << newVariance);
 
                     cout << out.jsonString(Strict) << endl;
                 }
