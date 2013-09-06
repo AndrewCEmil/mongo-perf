@@ -160,10 +160,35 @@ namespace {
     };
 
     double genVariance(double runcount, double sum, double sumofsquares) {
+        cerr << "runcount: " << runcount << endl;
         double numerator = ( (runcount * sumofsquares) - (sum * sum));
         double denominator = ( runcount * (runcount - 1));
         double variance = numerator / denominator;
+        cerr << "variance: " << variance << endl;
         return variance;
+    }
+
+    double getMean(vector<double> vals) {
+        int i;
+        double sum = 0;
+        for(i = 0; i < vals.size(); i++) {
+            sum = sum + vals[i];
+        }
+        double result = sum / vals.size();
+        return result;
+    }
+
+    double genRealVariance(vector<double> secs) {
+        double mean = getMean(secs);
+        int i;
+        double delta;
+        double curSum = 0;
+        for(i = 0; i < secs.size(); i++) {
+            delta = secs[i] - mean;
+            curSum = curSum + (delta * delta);
+        }
+        double finalRes = curSum / (secs.size() - 1);
+        return finalRes;
     }
 
     struct TestSuite{
@@ -171,6 +196,7 @@ namespace {
             void add(){
                 tests.push_back(new Test<T>());
             }
+            //NOTE YOU NOOB, this is calculating variance wrong
             void run(){
                 //TODO pull static variables out here
                 for (vector<TestBase*>::iterator it=tests.begin(), end=tests.end(); it != end; ++it){
@@ -184,13 +210,15 @@ namespace {
                     bool resetDone = false;
                     int minRunCount = 5;
                     int maxRunCount = 20;
-                    double maxVariance = 100;//TODO test + set
-
+                    double maxVariance = 400000;//TODO test + set
+                    vector<double> times;
                     //this section should be run multiple tmes
                     double runcount = 0;
                     double sum = 0;
                     double sumofsquares = 0;
                     bool keeprunning = true;
+                    double variance = 0;
+
                     //first run it 5 times
                     //then keep running until either
                         //a standard dev is < epsilon
@@ -204,41 +232,36 @@ namespace {
                         startTime = boost::posix_time::microsec_clock::universal_time();
                         launch_subthreads(thread_num, test);
                         endTime = boost::posix_time::microsec_clock::universal_time();
-                        double micros = (endTime-startTime).total_microseconds() / 1000000.0;
+                        double secs = (endTime-startTime).total_microseconds() / 1000000.0;
                         runcount = runcount + 1;
-                        sum = sum + micros;
-                        sumofsquares = sumofsquares + (micros * micros);
+                        sum = sum + secs;
+                        sumofsquares = sumofsquares + (secs * secs);
+                        times.push_back(secs);
 
-                        double variance = genVariance(runcount, sum, sumofsquares);
+                        cerr << "runcount " << runcount << endl;
+                        cerr << "secs " << secs << endl;
+                        cerr << "sum " << sum << endl;
+                        //variance = genVariance(runcount, sum, sumofsquares);
+                        variance = genRealVariance(times);
+                        cerr << "variance " << variance << endl;
                         //set keep running
                         //TODO this is shit/unclear, make it better
                         if(runcount < minRunCount) {
                             keeprunning = true;
-                        } else if (variance > maxVariance) {
+                        } else if (variance < maxVariance) {
                             keeprunning = false;   
                         } else if (runcount >= maxRunCount) {
                             keeprunning = false;
                         }
                     }
                     //done
-                    //TODO this is calculated wrong
                     double avg_ops = (iterations * runcount) / sum;
-                    results.append("realtest", BSON("avgOPS" << avg_ops));
                     BSONObj out = BSON( "name" << test->name()
-                                     << "results" << results.obj());
+                                     << "avgOPS" << avg_ops
+                                     << "rounds" << runcount
+                                     << "totalTimeSecs" << sum
+                                     << "variance" << variance);
 
-
-                    /*
-                        results.append(BSONObjBuilder::numStr(nthreads),
-                                       BSON( "time" << micros
-                                          << "ops_per_sec" << iterations / micros
-                                          ));
-                    //end section
-                    BSONObj out =
-                        BSON( "name" << test->name()
-                           << "results" << results.obj()
-                           );
-                    */
                     cout << out.jsonString(Strict) << endl;
                 }
             }
