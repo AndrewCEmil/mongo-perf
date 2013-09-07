@@ -21,6 +21,7 @@ using namespace mongo;
 
 namespace {
     const int thread_nums[] = {1,2,4,6,8,12,16};
+    const int thread_num = 12;
     const int max_threads = 16;
     // Global connections
     DBClientConnection _conn[max_threads];
@@ -158,12 +159,57 @@ namespace {
         T test;
     };
 
+    /*
+    double genVariance(double runcount, double sum, double sumofsquares) {
+        cerr << "runcount: " << runcount << endl;
+        double numerator = ( (runcount * sumofsquares) - (sum * sum));
+        double denominator = ( runcount * (runcount - 1));
+        double variance = numerator / denominator;
+        cerr << "variance: " << variance << endl;
+        return variance;
+    }*/
+
+    double getSum(vector<double> vals) {
+        double sum = 0;
+        for(int i = 0; i < vals.size(); i++) {
+            sum = sum + vals[i];
+        }
+        return sum;
+    }
+
+    double getMean(vector<double> vals) {
+        int i;
+        double sum = getSum(vals);
+        double result = sum / vals.size();
+        return result;
+    }
+
+    double genRealVariance(vector<double> secs, double meanSecs) {
+        int i;
+        double delta;
+        double curSum = 0;
+        for(i = 0; i < secs.size(); i++) {
+            delta = secs[i] - meanSecs;
+            curSum = curSum + (delta * delta);
+        }
+        double finalRes = curSum / (secs.size() - 1);
+        return finalRes;
+    }
+
     struct TestSuite{
             template <typename T>
             void add(){
                 tests.push_back(new Test<T>());
             }
+            //TODO tons of optimizations to be done here, its pretty sloppy right now
             void run(){
+                int minRunCount = 5;
+                int maxRunCount = 20;
+                double maxVariance = 400000;//TODO test + set
+                double maxVarianceRatio = .01;
+                double oldVariance;
+                double newVariance;
+                double mean;
                 for (vector<TestBase*>::iterator it=tests.begin(), end=tests.end(); it != end; ++it){
                     TestBase* test = *it;
                     boost::posix_time::ptime startTime, endTime; //reused
@@ -172,33 +218,56 @@ namespace {
 
                     BSONObjBuilder results;
 
-                    double one_micros;
                     bool resetDone = false;
-                    BOOST_FOREACH(int nthreads, thread_nums){
+                    bool keeprunning = true;
+                    vector<double> times;
 
+                    while(keeprunning) {
+
+                        //TODO is this the correct reset behavior, its left from old code
                         if (!test->readOnly() || !resetDone) {
                             test->reset();
                             resetDone = true;
                         }
+
                         startTime = boost::posix_time::microsec_clock::universal_time();
-                        launch_subthreads(nthreads, test);
+                        launch_subthreads(thread_num, test);
                         endTime = boost::posix_time::microsec_clock::universal_time();
-                        double micros = (endTime-startTime).total_microseconds() / 1000000.0;
 
-                        if (nthreads == 1) 
-                            one_micros = micros;
+                        double secs = (endTime-startTime).total_microseconds() / 1000000.0;
+                        times.push_back(secs);
 
-                        results.append(BSONObjBuilder::numStr(nthreads),
-                                       BSON( "time" << micros
-                                          << "ops_per_sec" << iterations / micros
-                                          << "speedup" << one_micros / micros
-                                          ));
+                        mean = getMean(times);
+                        newVariance = genRealVariance(times, mean);
+                        cerr << "variance " << newVariance << endl;
+
+                        //TODO this is shit/unclear, make it better
+                        if(times.size() < minRunCount) {
+                            keeprunning = true; //dont really need to set as True is default
+                        } else if (times.size() >= maxRunCount) {
+                            keeprunning = false;
+                        } else {
+                            //NOTE should not get in here with empty/invalid variances
+                            //calculate variance limits
+                            double varRatio = abs(1 - (oldVariance / newVariance));
+                            cerr << "varRatio: " << varRatio << endl;
+                            if (varRatio <= maxVarianceRatio) {
+                                keeprunning = false;
+                            }
+                        }
+                        oldVariance = newVariance;
                     }
 
-                    BSONObj out =
-                        BSON( "name" << test->name()
-                           << "results" << results.obj()
-                           );
+                    //done
+                    double sum = getSum(times);
+                    double avg_ops = (iterations * times.size()) / sum;
+                    int size = int(times.size());
+                    BSONObj out = BSON( "name" << test->name()
+                                     << "avgOPS" << avg_ops
+                                     << "rounds" << static_cast<int>(times.size())
+                                     << "totalTimeSecs" << sum
+                                     << "variance" << newVariance);
+
                     cout << out.jsonString(Strict) << endl;
                 }
             }
@@ -879,6 +948,7 @@ namespace{
             add< Insert::EmptyBatched<100> >();
             add< Insert::EmptyBatched<1000> >();
             add< Insert::EmptyCapped >();
+            /*
             add< Insert::JustID >();
             add< Insert::IntID >();
             add< Insert::IntIDUpsert >();
@@ -911,6 +981,7 @@ namespace{
             add< Commands::CountsFullCollection >();
             add< Commands::CountsIntIDRange >();
             add< Commands::FindAndModifyInserts >();
+            */
 
         }
     } theTestSuite;
