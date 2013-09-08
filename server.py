@@ -40,12 +40,12 @@ def send_static(filename):
 @route("/host")
 def host_page():
     result = {}
-    result['date'] = request.GET.get('date', '')
+    result['timestamp'] = request.GET.get('timestamp', '')
     result['label'] = request.GET.get('label', '')
     result['version'] = request.GET.get('version', '')
     host = db.host.find_one({"build_info.version": result['version'],
                                 "label": result['label'],
-                                "run_date": result['date']
+                                "run_ts": result['timestamp']
                             })
     return template('host.tpl', host=host)
 
@@ -65,12 +65,12 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
     """
 
     if start:
-        start_query = {'run_date': {'$gte': start}}
+        start_query = {'run_ts': {'$gte': start}}
     else:
         start_query = {}
 
     if end:
-        end_query = {'run_date': {'$lte': end}}
+        end_query = {'run_ts': {'$lte': end}}
     else:
         end_query = {}
 
@@ -100,12 +100,13 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
     else:
         platforms_query = {}
 
+    #this gets broken with timestamp, TODO fix
     if dates:
         if dates.startswith('/') and dates.endswith('/'):
-            date_query = {'run_date': {'$regex':
+            date_query = {'run_ts': {'$regex':
                                        dates[1:-1], '$options': 'i'}}
         else:
-            date_query = {'run_date': {'$in': dates.split(" ")}}
+            date_query = {'run_ts': {'$in': dates.split(" ")}}
     else:
         date_query = {}
 
@@ -120,7 +121,7 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
 
     cursor = db.raw.find({"$and": [version_query, label_query, 
             platforms_query, date_query, start_query, end_query]})\
-        .sort([ ('run_date', pymongo.DESCENDING), 
+        .sort([ ('run_ts', pymongo.DESCENDING), 
                 ('platform', pymongo.DESCENDING)])\
         .limit(limit)
 
@@ -136,8 +137,8 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
                 row = dict(commit=entry['commit'],
                            platform=entry['platform'],
                            version=entry['version'],
-                           date=entry['run_date'],
-                           label=entry['label'])
+                           label=entry['label'],
+                           timestamp=entry['run_ts'])
                 for (n, res) in result['results'].iteritems():
                     row[n] = res
                 aggregate[result['name']].append(row)
@@ -189,7 +190,7 @@ def results_page():
                 for attrib in result:
                     result[attrib] = '/' + result[attrib] + '/'
                 tmp = raw_data(result['version'], result['label'], multidb,
-                               result['run_date'], result['platform'], None, None, limit)
+                               result['run_ts'], result['platform'], None, None, limit)
                 for result in tmp:
                     results.append(result)
             results = merge(results)
@@ -241,7 +242,7 @@ def results_page():
         out = []
         for i, result in enumerate(outer_result['results']):
             out.append({'label': " - ".join((result['label'], result['version'], 
-                    result['date'])), 'data': sorted([int(k), v[metric]]
+                    str(result['timestamp']))), 'data': sorted([int(k), v[metric]]
                         for (k, v) in result.iteritems() if k.isdigit())
                         })
             threads.update(int(k) for k in result if k.isdigit())
@@ -270,7 +271,7 @@ def merge(results):
                    platform=result['results'][0]['platform'],
                    version=result['results'][0]['version'],
                    commit=result['results'][0]['commit'],
-                   date=result['results'][0]['date'])
+                   timestamp=result['results'][0]['run_ts'])
         for (n, res) in result['results'][0].iteritems():
             row[n] = res
         aggregate[result['name']].append(row)
@@ -302,8 +303,7 @@ def main_page():
         cursor = db.raw.find({"version": versions[0]},
                              {"_id" : 0, "singledb" : 0, 
                              "multidb" : 0, "commit" : 0})\
-            .limit(len(labels)).sort([('run_date', pymongo.DESCENDING)])
-        needed = ['label', 'platform', 'run_date', 'version']
+            .limit(len(labels)).sort([('run_ts', pymongo.DESCENDING)])
         rows = []
 
         for record in cursor:
@@ -311,7 +311,7 @@ def main_page():
 
         rows = sorted([dict(t) for t in set([tuple(d.items())
                        for d in rows])], key=lambda t:
-                     (t['run_date'], t['label']), reverse=True)
+                     (t['run_ts'], t['label']), reverse=True)
 
     return template('main.tpl', rows=rows, labels=labels,
                     versions=versions, platforms=platforms)
