@@ -50,7 +50,7 @@ def host_page():
     return template('host.tpl', host=host)
 
 
-@route("/raw")
+#Note: refactored form simply gets all the results and returns them as a list
 def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
     """ Pulls and aggregates raw data from database matching query parameters
         :Parameters:
@@ -119,15 +119,16 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
     else:
         label_query = {}
 
-    cursor = db.raw.find({"$and": [version_query, label_query, 
-            platforms_query, date_query, start_query, end_query]})\
+    query ={"$and": [version_query, label_query, platforms_query, date_query, start_query, end_query]}
+    pprint.pprint(query)
+    cursor = db.raw.find(query)\
         .sort([ ('run_ts', pymongo.DESCENDING), 
                 ('platform', pymongo.DESCENDING)])\
         .limit(limit)
 
-    aggregate = defaultdict(list)
-    result_size = cursor.count(with_limit_and_skip=True)
+    return list(cursor)
 
+"""
     for index in xrange(0, result_size):
         entry = cursor[index]
         if multidb in entry:
@@ -139,8 +140,9 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
                            version=entry['version'],
                            label=entry['label'],
                            timestamp=entry['run_ts'])
-                for (n, res) in result['results'].iteritems():
-                    row[n] = res
+                #for (n, res) in result['results'].iteritems():
+                #    row[n] = res
+                row[
                 aggregate[result['name']].append(row)
 
     aggregate = sorted(aggregate.iteritems(), key=lambda (k, v): k)
@@ -150,7 +152,9 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
         out.append({'name': item[0], 'results': item[1]})
 
     return out
+"""
 
+"""
 #TODO this is bad, need to refactor results_page method
 def get_new_flot_data():
     #TODO format description is not right here...
@@ -167,6 +171,7 @@ def get_new_flot_data():
         multidb = ele['multidb']
         for testResult in multidb:
             #store data appropriately
+        """
         
 
 @route("/results")
@@ -296,8 +301,76 @@ def results_page():
     """
     return template('results.tpl', results=results, flot_results=newer_flot_results,
                      request=request, threads=sorted(threads), datelist=sorted(dates))
-     #request=request, threads=sorted(threads))
 
+@route("/results2")
+def results2():
+    # specific platforms we want to view tests for
+    platforms = ' '.join(request.GET.getall('platforms'))
+    # specific mongod versions we want to view tests for
+    versions = ' '.join(request.GET.getall('versions'))
+    # specific dates for tests to be viewed
+    dates = ' '.join(request.GET.getall('dates'))
+    # special data structure for recent tests
+    home = ' '.join(request.GET.getall('home'))
+    # test host label
+    labels = ' '.join(request.GET.getall('labels'))
+    # test metric of interest
+    metric = request.GET.get('metric', 'ops_per_sec')
+    # # of tests to return
+    limit = request.GET.get('limit')
+    # tests run from this date (used in range query)
+    start = request.GET.get('start')
+    # tests run before this date (used in range query)
+    end = request.GET.get('end')
+    # single db or multi db
+    multidb = request.GET.get('multidb', '0')
+    multidb = 'singledb' if multidb == '0' else 'multidb'
+
+    #TODO "home" handling ... do we want to do that at all?
+    
+    #first we get the raw data
+    data = raw_data(versions, labels, multidb, dates,
+                    platforms, start, end, limit)
+
+    #generate the "results" data
+    #first we need to generate a list of documents that have the "name field"
+    #TODO pull this out into functions later
+    aggregate = defaultdict(list)
+    for i in range(len(data)):
+        entry = data[i]
+        if "multidb" not in entry:
+            print "CRAP BAD" #TODO handle better
+        else:
+            results = entry['multidb']
+            for result in results:
+                aggele = { 'commit': entry['commit'], 
+                           'platform': entry['platform'],
+                           'version': entry['version'],
+                           'run_ts': entry['run_ts'],
+                           'label': entry['label'],
+                           'result': result }
+                aggregate[result['name']].append(aggele)
+
+    #TODO what exactly is this doing?
+    #turns into a sorted list of (testname, [aggele,...]
+    aggregate = sorted(aggregate.iteritems(), key=lambda (k, v): k)
+
+    results = []
+    for item in aggregate:
+        results.append({'name': item[0], 'results': item[1]})
+
+    pprint.pprint(results)
+    #generate the "flot_results" data
+    flot_results = []
+    for test in results:
+        testlist = []
+        for run in test['results']:
+            testdoc = {'label': run['run_ts']}
+            #TODO working here....
+
+    #return template('results.tpl', results=results, flot_results=newer_flot_results,
+    #                 request=request, datelist=sorted(dates))
+    return 'hello world'
 
 def merge(results):
     """This takes separate results that have been pulled
