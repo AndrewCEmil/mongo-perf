@@ -19,6 +19,7 @@ import json
 import pymongo
 import pprint
 import time 
+import calendar
 from bottle import *
 import logging as logr
 import logging.handlers
@@ -359,18 +360,27 @@ def results2():
     for item in aggregate:
         results.append({'name': item[0], 'results': item[1]})
 
-    pprint.pprint(results)
     #generate the "flot_results" data
+    dthandler = lambda obj: obj.isoformat() if isinstance(obj, datetime) else None
     flot_results = []
+    datelist = set()
     for test in results:
-        testlist = []
+        testdoc = {'label': 'testlabel'}
+        datalist = []
         for run in test['results']:
-            testdoc = {'label': run['run_ts']}
-            #TODO working here....
+            datalist.append([run['run_ts'], run['result']['avgOPS']])
+            datelist.add(calendar.timegm(run['run_ts'].utctimetuple()))
 
-    #return template('results.tpl', results=results, flot_results=newer_flot_results,
-    #                 request=request, datelist=sorted(dates))
-    return 'hello world'
+        testdoc['data'] = datalist
+        flot_results.append(json.dumps(testdoc, default=dthandler))
+
+    pprint.pprint(results)
+    pprint.pprint(flot_results)
+    pprint.pprint(sorted(datelist))
+
+    return template('results.tpl', results=results, flot_results=flot_results,
+                     request=request, datelist=sorted(datelist))
+    #return 'hello world'
 
 def merge(results):
     """This takes separate results that have been pulled

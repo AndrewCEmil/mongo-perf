@@ -95,9 +95,7 @@
                     <th>Version</th>
                     <th>Timestamp</th>
                     <th>Commit</th>
-                    %for thread in threads:
-                    <th>{{thread}} thread{{'' if thread == 1 else 's'}}</th>
-                    %end
+                    <th>OPS</th>
                 </tr>
             </thead>
             <tbody>
@@ -113,11 +111,9 @@
                     <td><a href="host?{{host}}">{{result['label']}}</a></td>
                     <td>{{result['platform']}}</td>
                     <td>{{result['version']}}</td>
-                    <td>{{result['timestamp']}}</td>
+                    <td>{{result['run_ts']}}</td>
                     <td><a href="https://github.com/mongodb/mongo/commit/{{result['commit']}}" target="_blank">{{result['commit'][:7]}}</a></td>
-                    %for thread in threads:
-                    <td>{{"{0:.2f}".format(result.get(str(thread), {metric:'--'})[metric])}}</td>
-                    %end
+                    <td>{{result['result']['avgOPS']}}</td>
                 </tr>
                 %end
             </tbody>
