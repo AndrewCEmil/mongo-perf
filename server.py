@@ -368,11 +368,12 @@ def results2():
         testdoc = {'label': 'testlabel'}
         datalist = []
         for run in test['results']:
-            datalist.append([run['run_ts'], run['result']['avgOPS']])
-            datelist.add(calendar.timegm(run['run_ts'].utctimetuple()))
+            date = time.mktime(run['run_ts'].timetuple()) * 1000
+            datalist.append([date, run['result']['avgOPS']])
+            datelist.add(date)
 
         testdoc['data'] = datalist
-        flot_results.append(json.dumps(testdoc, default=dthandler))
+        flot_results.append(json.dumps([testdoc], default=dthandler))
 
     pprint.pprint(results)
     pprint.pprint(flot_results)

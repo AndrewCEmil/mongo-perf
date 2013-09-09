@@ -132,7 +132,7 @@
                         series: { lines: { show: true }, points: { show: true } },
                         legend: { show: true, position: "nw", backgroundOpacity: 0,
                         container: $("#legendContainer_{{k}}"), noColumns: 2 },
-                        xaxis: {ticks : {{datelist}}, mode: "time" },
+                        xaxis: {ticks : {{datelist}}, mode: "time",timeformat: "%m/%d/%y %S" },
                         yaxis: {min : 0},
                         tooltip: true
                     }
