@@ -35,52 +35,47 @@
         % limit = request.GET.get('limit', '10')
         % start = request.GET.get('start', '')
         % end = request.GET.get('end', '')
-        <form action="/results">
-            <fieldset id="selectors" class="fields">
-                <div>
-                    <div>
-                        <label for="metric">Metric</label>
-                        <select id="metric" name="metric">
-                        <option {{'selected' if metric=="ops_per_sec" else ""}}>ops_per_sec</option>
-                        <option {{'selected' if metric=="time" else ""}}>time</option>
-                        <option {{'selected' if metric=="speedup" else ""}}>speedup</option>
-                        </select>
-                    </div>
-                    <div class="floatleft">
-                        <label for="labels">Labels (space-separated or /regex/)</label>
-                        <input type="text" name="labels" value="{{labels}}"/>
-                    </div>
-                    <div class="floatright">
-                        <label for="platforms">Platforms (space-separated or /regex/)</label>
-                        <input type="text" name="platforms" value="{{platforms}}"/>
-                    </div>
-                    <div class="floatleft">
-                        <label for="multidb">Single/Muiti database (0 or 1)</label>
-                        <input type="text" name="multidb" value="{{multidb}}"/>
-                    </div>
-                    <div class="floatright">
-                        <label for="versions">Versions (space-separated or /regex/)</label>
-                        <input type="text" name="versions" value="{{versions}}"/>
-                    </div>
-                    <div class="floatleft">
-                        <label for="start">Start Date (YYYY-MM-DD)</label>
-                        <input type="text" name="start" value="{{start}}"/>
-                    </div>
-                    <div class="floatright">
-                        <label for="end">End Date (YYYY-MM-DD)</label>
-                        <input type="text" name="end" value="{{end}}"/>
-                    </div>
-                    <div class="floatleft">
-                        <label for="dates">Specific dates (space-separated or /regex/)</label>
-                        <input type="text" name="dates" value="{{dates}}"/>
-                    </div>
-                    <div class="floatright">
-                        <label for="limit">Limit</label>
-                        <input type="text" name="limit" value="{{limit}}"/>
-                    </div>
-                </div>
-                <input type="hidden" name="home" value="{{home}}"/>
-                <input class="gofloat" type="submit" value="Go"/>
+        % platforms = ' '.join(request.GET.getall('platforms'))
+        % versions = ' '.join(request.GET.getall('versions'))
+        % labels = ' '.join(request.GET.getall('labels'))
+        <form name="custom_form" id="custom_form" action="/results" method="get">
+          <fieldset class="fields">
+              <div class="floatleft">
+              <h2>
+              From: <input type="text" size="6" name="start" class="datepicker" />
+              </h2>
+              <h2>
+              To:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="text" size="6" name="end" class="datepicker" />
+              </h2>
+              <h2>Labels</h2>
+              % labels = info['labels']
+              % platforms = info['platforms']
+              % versions = info['versions']
+              %for label in labels:
+              <input type="checkbox" name="labels" value={{label}}>{{label}}<br>
+              %end
+              <h2>Limit</h2>
+              <input type="text" name="limit" size="2" value="5"/><br><br>
+              </div>
+              <div class="floatcenter">
+              <h2>Platforms</h2>
+              %for platform in platforms:
+              <input type="checkbox" name="platforms" value={{platform}}>{{platform}}<br>
+              %end
+              <h2>MongoDB Version</h2>
+              %for version in versions:
+              <input type="checkbox" name="versions" value={{version}}>{{version}}<br>
+              %end
+              <h2>
+              Metric: <select id="metric" name="metric">
+                  <option {{'selected' if metric=="ops_per_sec" else ""}}>ops_per_sec</option>
+                  <option {{'selected' if metric=="time" else ""}}>time</option>
+                  <option {{'selected' if metric=="speedup" else ""}}>speedup</option>
+              </select>
+              </h2>
+              </div>
+              <input type="hidden" name="multidb" value="0"/><br><br>
+              <button class="gofloat" action='submit'>Submit</button>
             </fieldset>
         </form>
         <button onclick="hideTables()">Hide Tables</button>

@@ -379,12 +379,13 @@ def results2():
         testdoc['data'] = datalist
         flot_results.append(json.dumps([testdoc], default=dthandler))
 
-    pprint.pprint(results)
-    pprint.pprint(flot_results)
-    pprint.pprint(sorted(datelist))
+    #this gets the info to make a search as it is in main
+    #note that labels, versions, and platforms in the template have been
+    #hacked in, need to be removed/cleaned up in the future -sorry!
+    info = gen_query_info()
 
     return template('results.tpl', results=results, flot_results=flot_results,
-                     request=request, datelist=sorted(datelist))
+                     request=request, datelist=sorted(datelist), info=info)
     #return 'hello world'
 
 def merge(results):
@@ -411,23 +412,24 @@ def merge(results):
 
     return out
 
-
-@route("/")
-def main_page():
-    """Handler for main page
-    """
+#generates info needed to build up a useful query form, used in main and results
+def gen_query_info():
+    queryinfo = {}
     platforms = db.raw.distinct("platform")
     versions = db.raw.distinct("version")
     labels = db.raw.distinct("label")
     platforms = filter(None, platforms)
+    queryinfo['platforms'] = platforms
     versions = filter(None, versions)
+    queryinfo['versions'] = versions
     labels = filter(None, labels)
+    queryinfo['labels'] = labels
     versions = sorted(versions, reverse=True)
     rows = None
     
     # restricted to benchmark tests for most recent MongoDB version
     if versions:
-        cursor = db.raw.find({"version": versions[0]},
+        cursor = db.raw.find({},
                              {"_id" : 0, "singledb" : 0, 
                              "multidb" : 0, "commit" : 0})\
             .limit(len(labels)).sort([('run_ts', pymongo.DESCENDING)])
@@ -440,8 +442,18 @@ def main_page():
                        for d in rows])], key=lambda t:
                      (t['run_ts'], t['label']), reverse=True)
 
-    return template('main.tpl', rows=rows, labels=labels,
-                    versions=versions, platforms=platforms)
+    queryinfo['rows'] = rows
+    return queryinfo
+
+
+@route("/")
+def main_page():
+    """Handler for main page
+    """
+    info = gen_query_info()
+
+    return template('main.tpl', rows=info['rows'], labels=info['labels'],
+                    versions=info['versions'], platforms=info['platforms'])
 
 if __name__ == '__main__':
     do_reload = '--reload' in sys.argv
