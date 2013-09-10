@@ -65,6 +65,7 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
         - ``"limit"``: # of tests to return
     """
 
+    """
     if start:
         start_query = {'run_ts': {'$gte': start}}
     else:
@@ -74,6 +75,7 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
         end_query = {'run_ts': {'$lte': end}}
     else:
         end_query = {}
+    """
 
     if limit:
         try:
@@ -102,6 +104,7 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
         platforms_query = {}
 
     #this gets broken with timestamp, TODO fix
+    """
     if dates:
         if dates.startswith('/') and dates.endswith('/'):
             date_query = {'run_ts': {'$regex':
@@ -110,6 +113,7 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
             date_query = {'run_ts': {'$in': dates.split(" ")}}
     else:
         date_query = {}
+    """
 
     if labels:
         if labels.startswith('/') and labels.endswith('/'):
@@ -120,7 +124,7 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
     else:
         label_query = {}
 
-    query ={"$and": [version_query, label_query, platforms_query, date_query, start_query, end_query]}
+    query ={"$and": [version_query, label_query, platforms_query]}
     pprint.pprint(query)
     cursor = db.raw.find(query)\
         .sort([ ('run_ts', pymongo.DESCENDING), 
@@ -175,7 +179,7 @@ def get_new_flot_data():
         """
         
 
-@route("/results")
+@route("/results2")
 def results_page():
     """Handler for results page
     """
@@ -303,7 +307,7 @@ def results_page():
     return template('results.tpl', results=results, flot_results=newer_flot_results,
                      request=request, threads=sorted(threads), datelist=sorted(dates))
 
-@route("/results2")
+@route("/results")
 def results2():
     # specific platforms we want to view tests for
     platforms = ' '.join(request.GET.getall('platforms'))
