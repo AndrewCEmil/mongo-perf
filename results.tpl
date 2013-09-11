@@ -67,10 +67,6 @@
               <input type="checkbox" name="versions" value={{version}}>{{version}}<br>
               %end
               <h2>
-              Metric: <select id="metric" name="metric">
-                  <option {{'selected' if metric=="ops_per_sec" else ""}}>ops_per_sec</option>
-                  <option {{'selected' if metric=="time" else ""}}>time</option>
-                  <option {{'selected' if metric=="speedup" else ""}}>speedup</option>
               </select>
               </h2>
               </div>
