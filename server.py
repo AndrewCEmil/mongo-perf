@@ -47,6 +47,20 @@ def host_page():
                             })
     return template('host.tpl', host=host)
 
+def all_cursors_alive(cursor_list):
+    for cursor in cursor_list:
+        if not cursor.alive:
+            return False
+    return True
+
+def interleave_cursors(cursor_list):
+    outlist = []
+    while all_cursors_alive(cursor_list):
+        for cursor in cursor_list:
+            if cursor.alive:
+                outlist.append(cursor.next())
+    return outlist
+
 
 @route("/raw")
 def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
@@ -80,15 +94,6 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
     else:
         limit = 10
 
-    if versions:
-        if versions.startswith('/') and versions.endswith('/'):
-            version_query = {'version': {'$regex':
-                                         versions[1:-1], '$options': 'i'}}
-        else:
-            version_query = {'version': {'$in': versions.split(" ")}}
-    else:
-        version_query = {}
-
     if platforms:
         if platforms.startswith('/') and platforms.endswith('/'):
             platforms_query = {'platform': {'$regex':
@@ -116,17 +121,30 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
     else:
         label_query = {}
 
-    cursor = db.raw.find({"$and": [version_query, label_query, 
-            platforms_query, date_query, start_query, end_query]})\
-        .sort([ ('run_date', pymongo.DESCENDING), 
-                ('platform', pymongo.DESCENDING)])\
-        .limit(limit)
+    #hack, fixme: we just do multiple queries for differnt versions
+    #this lets us ensure that results from all versions are actually used
+    #note assumes that versions are not a regex
 
+    if versions:
+        versionlist = versions.split(' ')
+        cursors = []
+        total_length = 0
+        for version in versionlist:
+            version_query = {'version': version}
+            cursor = db.raw.find({"$and": [version_query, label_query, 
+                    platforms_query, date_query, start_query, end_query]})\
+                .sort([ ('run_date', pymongo.DESCENDING), 
+                        ('platform', pymongo.DESCENDING)])\
+                .limit(limit)
+            csize = cursor.count(with_limit_and_skip=True)
+            if csize > 0:
+                cursors.append(cursor)
+            
+    
     aggregate = defaultdict(list)
-    result_size = cursor.count(with_limit_and_skip=True)
-
-    for index in xrange(0, result_size):
-        entry = cursor[index]
+    interleaved_results = interleave_cursors(cursors)
+    for index in xrange(0, min(len(interleaved_results), limit)):
+        entry = interleaved_results[index]
         if multidb in entry:
             results = entry[multidb]
 
