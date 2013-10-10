@@ -140,7 +140,7 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
             if csize > 0:
                 cursors.append(cursor)
     else:
-        cursor = db.raw.find({"$and": [version_query, label_query, 
+        cursor = db.raw.find({"$and": [label_query, 
                 platforms_query, date_query, start_query, end_query]})\
             .sort([ ('run_date', pymongo.DESCENDING), 
                     ('platform', pymongo.DESCENDING)])\
