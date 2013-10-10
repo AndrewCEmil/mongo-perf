@@ -139,7 +139,14 @@ def raw_data(versions, labels, multidb, dates, platforms, start, end, limit):
             csize = cursor.count(with_limit_and_skip=True)
             if csize > 0:
                 cursors.append(cursor)
-            
+    else:
+        cursor = db.raw.find({"$and": [version_query, label_query, 
+                platforms_query, date_query, start_query, end_query]})\
+            .sort([ ('run_date', pymongo.DESCENDING), 
+                    ('platform', pymongo.DESCENDING)])\
+            .limit(limit)
+        cursors = [cursor]
+        
     
     aggregate = defaultdict(list)
     interleaved_results = interleave_cursors(cursors)
